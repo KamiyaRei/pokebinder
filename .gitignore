@@ -1,0 +1,10 @@
+# Downloaded artwork and local version snapshots
+/assets/
+/.versions/
+
+# Personal collection exports
+/pokebinder-????-??-??.json
+*.zip
+*.log
+.DS_Store
+Thumbs.db

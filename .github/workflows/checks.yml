@@ -1,0 +1,25 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check i18n.js
+          node --check prepare.cjs
+          node --check check.cjs
+      - name: Validate dataset and collection behavior
+        run: node check.cjs --skip-images
