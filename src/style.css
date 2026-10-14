@@ -15,7 +15,7 @@ dialog{border:1px solid var(--line);border-radius:18px;background:var(--white);c
 /* Version 3: subtle missing-card treatment, compact page navigation, Pokédex Dark. */
 .binderGrid .poke:not(.owned){background:linear-gradient(145deg,#f6f7f1,#ecefe5)}
 .binderGrid .poke:not(.owned) .cardArt{background:radial-gradient(ellipse at center,#f9faf5,#e8ece1)}
-.binderGrid .poke:not(.owned) .cardArt img{filter:saturate(.4);opacity:.86;transition:filter .2s,opacity .2s}
+.binderGrid .poke:not(.owned) .cardArt img{filter:saturate(.3) brightness(.88);opacity:.82;transition:filter .2s,opacity .2s}
 .binderGrid .poke.owned .cardArt img{filter:none;opacity:1}
 .binderGrid .poke.owned{box-shadow:0 3px 7px #17282223,inset 0 0 0 1px #a9c88d}
 .pageMap{grid-template-columns:repeat(auto-fill,60px);justify-content:start;gap:6px;max-height:290px;scrollbar-width:thin;scrollbar-color:#91a184 transparent;overflow-y:auto;overflow-x:hidden;padding:3px}

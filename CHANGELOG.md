@@ -2,6 +2,9 @@
 
 ## 0.03 — 2026-10-15
 
+- Organize app code, source data, scripts, tests and documentation into dedicated directories while keeping the root launch URL stable.
+- Add real application screenshots and a focused README gallery.
+- Slightly deepen the muted appearance of missing binder cards.
 - Add Pokédex Dark with persistent theme preferences and backup support.
 - Gently desaturate uncollected artwork on the main binder page, without extra labels.
 - Make page thumbnails compact while retaining the filled-pocket map.

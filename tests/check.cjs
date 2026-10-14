@@ -1,12 +1,16 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
+const PROJECT_ROOT=path.resolve(__dirname,'..');
+const entry=fs.readFileSync(path.join(PROJECT_ROOT,'index.html'),'utf8');
+for(const match of entry.matchAll(/(?:src|href)="((?:src|data)\/[^"]+)"/g)) assert(fs.existsSync(path.join(PROJECT_ROOT,match[1])),`Missing app resource: ${match[1]}`);
+for(const match of fs.readFileSync(path.join(PROJECT_ROOT,'README.md'),'utf8').matchAll(/\]\((docs\/[^)]+)\)/g)) assert(fs.existsSync(path.join(PROJECT_ROOT,match[1])),`Missing documentation resource: ${match[1]}`);
 const elements=new Map(),storage=new Map(),listeners=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{id,value:['status','generation','type'].includes(id)?'all':'',innerHTML:'',textContent:'',hidden:false,style:{},disabled:false,files:[],dataset:{},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;},classList:{add(){},remove(){},toggle(){}},add(){},focus(){},click(){},addEventListener(type,fn){listeners.set(id+':'+type,fn);}});return elements.get(id);}
 const c={console,window:{addEventListener(){}},document:{getElementById:element,documentElement:{lang:"",dataset:{},style:{setProperty(){}}},querySelectorAll:()=>[],addEventListener(type,fn){listeners.set(type,fn);}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},location:{hash:''},history:{replaceState(){}},Option:function(){},URL,Blob,setTimeout:()=>0,clearTimeout(){},confirm:()=>true};
-vm.createContext(c);vm.runInContext(fs.readFileSync(path.join(__dirname,'data.js'),'utf8'),c);vm.runInContext(fs.readFileSync(path.join(__dirname,'i18n.js'),'utf8'),c);vm.runInContext(fs.readFileSync(path.join(__dirname,'app.js'),'utf8'),c);
+vm.createContext(c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'data/pokedex.js'),'utf8'),c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'src/i18n.js'),'utf8'),c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'src/app.js'),'utf8'),c);
 const run=s=>vm.runInContext(s,c);
 for(const [id,binder,page,slot] of [[1,1,1,1],[12,1,1,12],[13,1,2,1],[480,1,40,12],[481,2,1,1],[960,2,40,12],[961,3,1,1],[1025,3,6,5]])assert.equal(run(`JSON.stringify(position(${id}))`),JSON.stringify({binder,page,slot,row:Math.floor((slot-1)/4)+1,col:(slot-1)%4+1}));
 assert.equal(run('D.length'),1025);assert.equal(run('new Set(D.map(p=>p.id)).size'),1025);
-for(const p of c.window.POKEMON){assert(p.en&&p.ja&&p.gen);if(process.argv.includes('--skip-images'))continue;const image=fs.readFileSync(path.join(__dirname,p.image));assert(image.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),`Invalid PNG ${p.id}`);}
+for(const p of c.window.POKEMON){assert(p.en&&p.ja&&p.gen);if(process.argv.includes('--skip-images'))continue;const image=fs.readFileSync(path.join(PROJECT_ROOT,p.image));assert(image.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),`Invalid PNG ${p.id}`);}
 for(const [q,id] of [['#0025',25],['pikachu',25],['ピカチュウ',25],['пикачу',25],['бульбазавр',1],['Pecharunt',1025]]){element('search').value=q;run('renderCatalog()');assert.equal(run('filtered[0].id'),id,q);}
 element('search').value='';run('toggle(25)');assert(run('owned.has(25)'));assert.deepEqual(JSON.parse(storage.get('pokebinder.v1')).owned,[25]);run('owned.clear(); readState()');assert(run('owned.has(25)'),'Persistence reload');
 element('status').value='owned';run('renderCatalog()');assert.equal(run('filtered.length'),1);assert.equal(run('filtered[0].id'),25);
@@ -81,5 +85,3 @@ console.log('V3 PASS: theme toggling, persisted reload, export, validation, and 
   await element('importFile').onchange();assert.equal(run('JSON.stringify(snapshot().owned)'),JSON.stringify([1,480,481,1025]));
   console.log('V2 PASS: translation parity; all-language search; language persistence; 7 layouts; species-stable marks; physical pocket counts; backup migration; five recovery points; previous-save recovery; invalid import rejection.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
-
-

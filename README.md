@@ -1,65 +1,99 @@
+<div align="center">
+
 # PokéBinder
 
-**Version 0.03** · Created and maintained by [KamiyaRei](https://github.com/KamiyaRei)
+**Your National Dex. Your physical binder.**
 
-A local, multilingual tracker for building a physical National Pokédex binder: one card per Pokémon, with a place for every species.
+One Pokémon per pocket — with a place for every card you collect.
 
-- 1025 species, searchable across English/Japanese names and Russian aliases.
-- Configurable binder pages with portrait cards, pocket maps and progress statistics.
-- English, Japanese and Russian interfaces, plus a Pokédex-inspired dark theme.
-- Browser-local progress, recovery points and portable JSON backups.
-- No account, server, build step or third-party JavaScript dependencies.
+English · 日本語 · Русский
 
-## Get started from GitHub
+[Quick start](#quick-start) · [User guide](docs/user-guide.md) · [Changelog](CHANGELOG.md)
+
+</div>
+
+![Pokédex search and collection overview](docs/screenshots/pokedex-light.jpg)
+
+## A collection you can see
+
+| Feature | What it does |
+| :--- | :--- |
+| National Pokédex | All 1025 species, with English and Japanese names, types and artwork. |
+| Your binder layout | 4×3, 3×3, 2×2, 4×4 presets, or custom columns, rows and page counts. |
+| A pocket for every Pokémon | National-number order, exact binder/page/pocket positions and previous/next navigation. |
+| Visible progress | Collected cards stay in full color; missing cards are gently muted. Page maps show every filled pocket. |
+| Three languages | English, Japanese and Russian interfaces. Search works across all available names. |
+| Two themes | Light and Pokédex Dark, with a red binder shell and green collection indicators. |
+| Your own data | Automatic local saving, five recovery points and portable JSON backups. |
+
+No account, server, build step or third-party JavaScript dependencies are needed to use the prepared app.
+
+## Inside the binder
+
+| Light | Pokédex Dark |
+| :---: | :---: |
+| ![Light binder with collected and missing cards](docs/screenshots/binder-light.jpg) | ![Dark binder with collected and missing cards](docs/screenshots/binder-dark.jpg) |
+
+<details>
+<summary><strong>Binder layout and storage settings</strong></summary>
+
+![Layout and backup settings](docs/screenshots/settings-dark.jpg)
+
+</details>
+
+Screenshots show a demonstration collection, not a user's private progress.
+
+## Quick start
+
+Clone the repository and download the artwork once:
 
 ```sh
 git clone https://github.com/KamiyaRei/pokebinder.git
 cd pokebinder
-node prepare.cjs --images
+node scripts/prepare.cjs --images
 ```
 
-Use Node.js 22 or newer for preparation. The command uses the bundled dataset and downloads the 1025 primary artwork files from the official Pokédex. Once it finishes, open `index.html`. Internet is needed for that initial download; afterwards the main app works offline. Artwork is excluded from Git to keep the source repository compact. Existing local copies already containing `assets/` need no download.
+Preparation requires **Node.js 22 or newer** and an internet connection. Then open **`index.html`** in your normal browser, or double-click **`open.cmd`** on Windows. Afterwards, the primary artwork, Pokédex, search and collection tracking work offline. Downloaded artwork is excluded from Git; existing copies containing `assets/` need no download.
 
-Read [CHANGELOG.md](CHANGELOG.md) for release history and [THIRD_PARTY.md](THIRD_PARTY.md) for data and artwork attribution.
+A page means **one side of a sheet**. The default 4×3 layout has 12 pockets per page and 40 pages per binder: 480 pockets. Double-sided sleeves mean 20 physical sheets. Changing the layout keeps collection marks and recalculates their positions.
 
-## Launch
+## Keep your collection safe
 
-Open `index.html` in your normal browser, or double-click `open.cmd`. No installation or server is needed. The dataset and all 1025 Pokémon images work offline. Only external source links require an internet connection.
+Progress, layout, language and theme are saved in this browser. Download a **Backup** regularly and use **Restore** when moving to another browser or device. Local recovery points cannot protect against browser data being cleared. The root `index.html` entry point and storage key remain stable across this project reorganization.
 
-## Languages
+See the [user guide](docs/user-guide.md) for storage details, keyboard controls and supported search names.
 
-English is the default. The header switches between English, Japanese and Russian and remembers the choice. All interface text, types, regions, settings, accessibility labels, confirmations and errors are translated. Japanese mode shows Japanese Pokémon names first; English and Russian modes use English species names with Japanese secondary names. Russian name search supports approximate English transliteration and additional aliases for common Pokémon; it is not an official complete Russian naming dataset. Search supports all names regardless of interface language.
+## Project layout
 
-## Binder settings
+```text
+pokebinder/
+├── index.html            # Stable browser entry point
+├── open.cmd              # Windows launcher
+├── src/                  # App behavior, translations and styles
+├── data/
+│   ├── pokedex.js        # Prepared species dataset
+│   └── source/           # Original data snapshots
+├── scripts/              # Dataset/artwork preparation and local preview
+├── tests/                # Data, settings and collection checks
+├── docs/                 # Guide, attribution and screenshots
+└── .github/workflows/    # Automated checks
+```
 
-Settings includes 4×3, 3×3, 2×2 and 4×4 page-layout presets. Custom layouts support 1–6 columns, 1–6 rows and 1–200 pages per binder. A page means ONE SIDE of a sheet. For a double-sided binder, 40 pages corresponds to 20 physical sheets. Default: 4 columns × 3 rows, 40 pages, 480 cards per binder. Species are ordered by National Pokédex number, left to right, then top to bottom. The number of binders is calculated automatically. Marks are stored by species ID, so layout changes retain all collected cards and only recalculate positions.
+`assets/` is created by the preparation script and is ignored by Git. Personal backup files and local `.versions/` snapshots are ignored too.
 
-Each species has one pocket; alternative forms do not consume extra pockets. Portrait cards use the 63:88 aspect ratio. Both the binder page and its small location preview show a 3-ring spine, page sleeves and portrait cards. Page thumbnails and binder summary rings show collection progress. Unused final pockets remain empty.
+## Development
 
-## Storage and backup
+```sh
+node scripts/prepare.cjs         # Rebuild the dataset from bundled sources
+node tests/check.cjs --skip-images
+node tests/check.cjs             # Also validate downloaded PNGs
+node scripts/preview.cjs         # Optional preview: http://127.0.0.1:8765
+```
 
-Progress, selected Pokémon, language and binder layout are stored automatically in localStorage under `pokebinder.v1`. This key and the original `index.html` location are kept stable for compatibility with version 1. Continue using the same browser, profile and folder. Updating the app files does not intentionally modify browser storage.
+The checks exercise species data, multilingual search, layout boundaries, settings persistence, backup compatibility and recovery. Opening the app through HTTP uses a different browser-storage origin from the file-based app; export/import a backup when switching.
 
-The last five collection/layout changes create local recovery points. Navigation and language changes do not consume recovery points. Settings → Restore previous save returns to a prior collection and layout after confirmation. These recovery points are in the SAME browser; they do not protect against clearing browser data or losing the device.
+## Data & artwork
 
-Download a JSON backup regularly using Backup or Settings → Download backup. It includes marks, binder layout and language. Restore validates IDs/settings, asks for confirmation, and imports the backup. Original version 1 backups containing just marks remain supported. Moving to a different browser/computer or clearing browser data requires a downloaded backup. Private browsing may discard storage. Storage failures display a warning. Backup timestamps indicate that a download was initiated, not that an external copy is guaranteed to exist.
+Species snapshot: October 15, 2026. Japanese data and primary artwork come from the [official Pokémon Pokédex](https://zukan.pokemon.co.jp/); English names and generations come from [PokeAPI](https://github.com/PokeAPI/pokeapi). Alternate forms currently share the species pocket.
 
-## Keyboard
-
-Left/right arrows: previous/next species. Space: mark/unmark card. `/`: focus search. Shortcuts are inactive inside editable controls, buttons and the settings dialog.
-
-## Data and development
-
-Dataset snapshot: October 15, 2026.
-- Official Japanese names, National IDs, types, height, weight, artwork and form metadata: https://zukan.pokemon.co.jp/zukan-api/api/search/?limit=2000&page=1
-- English names and generations: https://github.com/PokeAPI/pokeapi/tree/master/data/v2/csv
-- Artwork © Pokémon / Nintendo / Creatures / GAME FREAK.
-
-`official.json`, `masters.json`, `names.csv`, and `species.csv` retain the source data. `node prepare.cjs` rebuilds `data.js`; adding `--images` downloads missing primary-form images. No automatic dataset updates. `i18n.js` contains the three translation dictionaries. `node check.cjs` validates data, downloaded images and behavior. `node check.cjs --skip-images` runs the source-only checks before artwork is downloaded. Code identifiers, file names and development documentation are in English; localized content remains in its respective language.
-
-## Appearance
-
-Missing cards on the main binder page have gently reduced artwork saturation and slightly quieter backgrounds. Names and controls retain full readability, with no additional badges or missing-card text. Collected cards retain full color and their existing check mark. Page thumbnails use compact fixed widths rather than expanding with the window.
-
-The header moon/sun button and Settings → Appearance switch between Light and Pokédex Dark. The dark theme uses a charcoal interface, a red binder shell and green collection indicators. Theme preference is saved and exported with the collection. Older backups remain supported. Theme changes do not consume collection recovery points.
-
+Independent fan project. Pokémon artwork, names and trademarks belong to their respective owners. See [data and artwork attribution](docs/third-party.md).
