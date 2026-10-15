@@ -2,17 +2,17 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('p
 const PROJECT_ROOT=path.resolve(__dirname,'..');
 const entry=fs.readFileSync(path.join(PROJECT_ROOT,'index.html'),'utf8');
 for(const match of entry.matchAll(/(?:src|href)="((?:src|data)\/[^"]+)"/g)) assert(fs.existsSync(path.join(PROJECT_ROOT,match[1])),`Missing app resource: ${match[1]}`);
-for(const match of fs.readFileSync(path.join(PROJECT_ROOT,'README.md'),'utf8').matchAll(/\]\((docs\/[^)]+)\)/g)) assert(fs.existsSync(path.join(PROJECT_ROOT,match[1])),`Missing documentation resource: ${match[1]}`);
+for(const match of fs.readFileSync(path.join(PROJECT_ROOT,'README.md'),'utf8').matchAll(/\]\((docs\/[^)]+)\)/g)) assert(fs.existsSync(path.join(PROJECT_ROOT,match[1].split('#')[0])),`Missing documentation resource: ${match[1]}`);
 const elements=new Map(),storage=new Map(),listeners=new Map();
 function element(id){if(!elements.has(id))elements.set(id,{id,value:['status','generation','type'].includes(id)?'all':'',innerHTML:'',textContent:'',hidden:false,style:{},disabled:false,files:[],dataset:{},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;},classList:{add(){},remove(){},toggle(){}},add(){},focus(){},click(){},addEventListener(type,fn){listeners.set(id+':'+type,fn);}});return elements.get(id);}
 const c={console,window:{addEventListener(){}},document:{getElementById:element,documentElement:{lang:"",dataset:{},style:{setProperty(){}}},querySelectorAll:()=>[],addEventListener(type,fn){listeners.set(type,fn);}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},location:{hash:''},history:{replaceState(){}},Option:function(){},URL,Blob,setTimeout:()=>0,clearTimeout(){},confirm:()=>true};
-vm.createContext(c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'data/pokedex.js'),'utf8'),c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'src/i18n.js'),'utf8'),c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'src/app.js'),'utf8'),c);
+vm.createContext(c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'data/pokedex.js'),'utf8'),c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'src/i18n.js'),'utf8'),c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'src/tcg-catalog.js'),'utf8'),c);vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'src/app.js'),'utf8'),c);
 const run=s=>vm.runInContext(s,c);
 for(const [id,binder,page,slot] of [[1,1,1,1],[12,1,1,12],[13,1,2,1],[480,1,40,12],[481,2,1,1],[960,2,40,12],[961,3,1,1],[1025,3,6,5]])assert.equal(run(`JSON.stringify(position(${id}))`),JSON.stringify({binder,page,slot,row:Math.floor((slot-1)/4)+1,col:(slot-1)%4+1}));
 assert.equal(run('D.length'),1025);assert.equal(run('new Set(D.map(p=>p.id)).size'),1025);
 for(const p of c.window.POKEMON){assert(p.en&&p.ja&&p.gen);if(process.argv.includes('--skip-images'))continue;const image=fs.readFileSync(path.join(PROJECT_ROOT,p.image));assert(image.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),`Invalid PNG ${p.id}`);}
 for(const [q,id] of [['#0025',25],['pikachu',25],['ピカチュウ',25],['пикачу',25],['бульбазавр',1],['Pecharunt',1025]]){element('search').value=q;run('renderCatalog()');assert.equal(run('filtered[0].id'),id,q);}
-element('search').value='';run('toggle(25)');assert(run('owned.has(25)'));assert.deepEqual(JSON.parse(storage.get('pokebinder.v1')).owned,[25]);run('owned.clear(); readState()');assert(run('owned.has(25)'),'Persistence reload');
+element('search').value='';run('toggle(25)');assert(run('owned.has(25)'));assert.deepEqual(JSON.parse(storage.get('pokebinder.local.0.05')).owned,[25]);run('owned.clear(); readState()');assert(run('owned.has(25)'),'Persistence reload');
 element('status').value='owned';run('renderCatalog()');assert.equal(run('filtered.length'),1);assert.equal(run('filtered[0].id'),25);
 element('status').value='missing';run('renderCatalog()');assert.equal(run('filtered.length'),1024);
 element('status').value='all';element('generation').value='9';run('renderCatalog()');assert(run('filtered.every(p=>p.gen===9)'));
@@ -20,7 +20,7 @@ element('generation').value='all';element('type').value='5';run('renderCatalog()
 element('type').value='all';run('binder=1;sheet=40;moveSheet(1)');assert.equal(run('binder'),2);assert.equal(run('sheet'),1);run('moveSheet(-1)');assert.equal(run('binder'),1);assert.equal(run('sheet'),40);
 run('select(1025); showLocation()');assert.equal(run('binder'),3);assert.equal(run('sheet'),6);assert.equal((element('binderGrid').innerHTML.match(/class="emptySlot"/g)||[]).length,7);
 run('select(0)');assert.equal(run('selected'),1025);run('select(1026)');assert.equal(run('selected'),1025);
-for(const invalid of [{version:1,owned:[1026]},{version:1,owned:['25']},{version:2,owned:[]},{version:1,owned:[-1]},{}]){assert.throws(()=>run('validateBackup('+JSON.stringify(invalid)+')'));}
+for(const invalid of [{version:1,owned:[1026]},{version:1,owned:['25']},{version:99,owned:[]},{version:1,owned:[-1]},{}]){assert.throws(()=>run('validateBackup('+JSON.stringify(invalid)+')'));}
 console.log('BASE PASS: 1025 unique species; artwork checks '+(process.argv.includes('--skip-images')?'skipped':'passed')+'; Japanese/English/Russian/number search; filters; mark and persisted reload; binder boundaries; final partial page; backup validation.');
 
 // Interface translation coverage and saved-language behavior.
@@ -32,7 +32,7 @@ for(const locale of ['en','ja','ru']) {
   assert.equal(run('language'),locale);
   assert.equal(c.document.documentElement.lang,locale);
   assert(run('owned.has(25)'));
-  assert.equal(JSON.parse(storage.get('pokebinder.v1')).language,locale);
+  assert.equal(JSON.parse(storage.get('pokebinder.local.0.05')).language,locale);
   assert(!element('detail').innerHTML.includes('undefined'));
   assert(!element('detail').innerHTML.match(/\{\w+\}/));
   for(const [query,id] of [['ピカチュウ',25],['пикачу',25],['Pikachu',25]]) {
@@ -58,23 +58,36 @@ for(const [columns,rows,pages] of [[3,3,40],[2,2,40],[4,4,40],[6,2,20],[1,1,1],[
 for(const value of [{columns:0,rows:3,pages:40},{columns:4,rows:7,pages:40},{columns:4,rows:3,pages:201},{columns:4.5,rows:3,pages:40}])assert.throws(()=>run(`applyLayout(${JSON.stringify(value)})`));
 // Recovery snapshots include layout/marks, capped at five; navigation does not displace them.
 run('toggle(2);toggle(3);toggle(4);toggle(5);toggle(6);toggle(7)');assert.equal(run('recoveryPoints().length'),5);
-const recoveryBefore=storage.get('pokebinder.v1.recovery');run('select(300);setLanguage("ru")');assert.equal(storage.get('pokebinder.v1.recovery'),recoveryBefore);
+const recoveryBefore=storage.get('pokebinder.local.0.05.recovery');run('select(300);setLanguage("ru")');assert.equal(storage.get('pokebinder.local.0.05.recovery'),recoveryBefore);
 const previous=JSON.parse(recoveryBefore)[0];element('recover').onclick();assert.equal(run('owned.size'),new Set(previous.owned).size);assert.equal(run('recoveryPoints().length'),4);
 // Theme changes are persisted, exported and do not alter marks or recovery points.
 const marksBeforeTheme=run('JSON.stringify(snapshot().owned)');
-const pointsBeforeTheme=storage.get('pokebinder.v1.recovery');
+const pointsBeforeTheme=storage.get('pokebinder.local.0.05.recovery');
 run('setTheme("dark")');
 assert.equal(c.document.documentElement.dataset.theme,'dark');
-assert.equal(JSON.parse(storage.get('pokebinder.v1')).theme,'dark');
+assert.equal(JSON.parse(storage.get('pokebinder.local.0.05')).theme,'dark');
 assert.equal(run('snapshot().theme'),'dark');
 assert.equal(run('JSON.stringify(snapshot().owned)'),marksBeforeTheme);
-assert.equal(storage.get('pokebinder.v1.recovery'),pointsBeforeTheme);
+assert.equal(storage.get('pokebinder.local.0.05.recovery'),pointsBeforeTheme);
 run('theme="light";readState();applyTheme()');
 assert.equal(run('theme'),'dark');
 assert.throws(()=>run('validateBackup({version:1,owned:[],theme:"unknown"})'));
 run('setTheme("light")');
 assert.equal(c.document.documentElement.dataset.theme,'light');
 console.log('V3 PASS: theme toggling, persisted reload, export, validation, and unchanged collection/recovery points.');
+// Optional exact-card records survive export, reload, layout changes and recovery.
+const manual={provider:'manual',speciesId:6,cardId:'manual-test',cardLanguage:'en',name:'Charizard',setId:'base1',setName:'Base Set',collectorNumber:'4',variant:'holo',image:'',firstEdition:false};
+run('assignPrinting(6,'+JSON.stringify(manual)+')');
+assert(run('owned.has(6)'));assert.equal(run('snapshot().version'),2);assert.equal(run('printings[6].collectorNumber'),'4');
+const savedPrinting=JSON.parse(storage.get('pokebinder.local.0.05'));assert.equal(savedPrinting.printings['6'].variant,'holo');
+run('printings={};readState()');assert.equal(run('printings[6].setId'),'base1');
+run('applyLayout({columns:3,rows:3,pages:40})');assert.equal(run('printings[6].cardId'),'manual-test');
+const countWithPrinting=run('owned.size');run('clearPrinting(6)');assert.equal(run('owned.size'),countWithPrinting);assert.equal(run('printings[6]'),undefined);
+element('recover').onclick();assert.equal(run('printings[6].cardId'),'manual-test');
+run('toggle(6)');assert(!run('owned.has(6)'));assert.equal(run('printings[6].cardId'),'manual-test');
+for(const bad of [{...manual,speciesId:25},{...manual,image:'https://evil.example/image.png'},{...manual,cardLanguage:'unknown'}])assert.throws(()=>run('validateBackup('+JSON.stringify({version:2,owned:[6],printings:{6:bad}})+')'));
+run('applySnapshot({version:1,owned:[25]})');assert(run('owned.has(25)'));assert.equal(run('Object.keys(printings).length'),0);
+console.log('0.05 PASS: exact-printing backup, persistent reload, stable layout mapping, link removal without losing collection marks, recovery, validation and legacy migration.');
 // Restore a legacy JSON backup through the actual handler.
 (async()=>{
   element('importFile').files=[{size:80,text:async()=>JSON.stringify({version:1,owned:[1,480,481,1025]})}];

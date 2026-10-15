@@ -19,7 +19,14 @@ jobs:
         run: |
           node --check src/app.js
           node --check src/i18n.js
+          node --check src/tcg-catalog.js
+          node --check src/card-picker.js
+          node --check scripts/import-japanese.cjs
           node --check scripts/prepare.cjs
           node --check tests/check.cjs
       - name: Validate dataset and collection behavior
         run: node tests/check.cjs --skip-images
+      - name: Validate card providers and Japanese database
+        run: |
+          node tests/catalog.cjs
+          node tests/japanese-catalog.cjs

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.05 — 2026-10-15
+
+- Bundle the official Japanese Pokémon-card search index: 17,534 entries with official image URLs, including 19 Bulbasaur cards.
+- Search Japanese cards locally, filter by set, distinguish catalog IDs from collector numbers and optionally enter missing collector numbers.
+- Report source coverage and import validation; retain source-specific artwork and foil-variation limitations.
+- Extend automated checks to the card provider and Japanese database.
+
+## 0.04 — 2026-10-15 (local preview)
+
+- Add optional exact printed-card selection, set filters, finish choices and manual entries.
+- Show chosen card fronts in the binder and location preview.
+- Include exact-card choices in schema 2 backups while retaining schema 1 imports.
+- Preserve collection marks when clearing a card link and preserve printing choices when unmarking a Pokémon.
+
 ## 0.03 — 2026-10-15
 
 - Organize app code, source data, scripts, tests and documentation into dedicated directories while keeping the root launch URL stable.

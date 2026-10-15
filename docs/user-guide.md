@@ -24,7 +24,7 @@ Read [CHANGELOG.md](../CHANGELOG.md) for release history and [third-party.md](th
 
 ## Launch
 
-Open `index.html` in your normal browser, or double-click `open.cmd`. No installation or server is needed. The dataset and all 1025 Pokémon images work offline. Only external source links require an internet connection.
+Open `index.html` in your normal browser, or double-click `open.cmd`. No installation or server is needed. Species data and all 1025 prepared Pokémon images work offline. Japanese card metadata is bundled; printed-card images and new English catalog searches require internet.
 
 ## Languages
 
@@ -38,11 +38,25 @@ Each species has one pocket; alternative forms do not consume extra pockets. Por
 
 ## Storage and backup
 
-Progress, selected Pokémon, language and binder layout are stored automatically in localStorage under `pokebinder.v1`. This key and the original `index.html` location are kept stable for compatibility with version 1. Continue using the same browser, profile and folder. Updating the app files does not intentionally modify browser storage.
+Version 0.05 saves progress, exact-card choices, selected Pokémon, language, theme and layout in localStorage under `pokebinder.local.0.05`. Previous 0.03 and 0.04 saves use separate keys and are preserved. To upgrade, export Backup in your previous application, then Restore it in 0.05. Continue using the same browser, profile and folder after migration.
 
 The last five collection/layout changes create local recovery points. Navigation and language changes do not consume recovery points. Settings → Restore previous save returns to a prior collection and layout after confirmation. These recovery points are in the SAME browser; they do not protect against clearing browser data or losing the device.
 
-Download a JSON backup regularly using Backup or Settings → Download backup. It includes marks, binder layout and language. Restore validates IDs/settings, asks for confirmation, and imports the backup. Original version 1 backups containing just marks remain supported. Moving to a different browser/computer or clearing browser data requires a downloaded backup. Private browsing may discard storage. Storage failures display a warning. Backup timestamps indicate that a download was initiated, not that an external copy is guaranteed to exist.
+Download a JSON backup regularly using Backup or Settings → Download backup. It includes marks, exact-card choices, binder layout, theme and language. Restore validates the data, asks for confirmation, and imports the backup. Schema 1 backups remain supported; current exports use schema 2, which 0.03 cannot import. Keep your old backup for rollback. Moving to another browser/computer or clearing browser data requires an exported backup. Private browsing may discard storage. Storage failures display a warning. Backup timestamps indicate that a download was initiated, not that an external copy is guaranteed to exist.
+
+Printed-card image URLs are included in backups; image binaries and catalog caches are not. New browsers/devices may need internet for artwork. Species artwork is the fallback if a card scan cannot load; the saved card identity remains intact.
+
+## Exact printed cards
+
+Open a Pokémon and choose **Choose card**. Card language is independent of interface language. Filter by set/expansion, search by name, set code, known collector number or official catalog ID, and sort the results. Select a card, choose its finish and confirm **Use this inserted card**. This saves the printing and marks the species as inserted. The usual collected mark also works without selecting a printing.
+
+**Change card** replaces the printing. **Clear card link** removes only the exact choice and keeps the collected mark. Unmarking retains the saved printing; re-marking displays it again. **Add manually** records cards outside the catalog without requiring artwork.
+
+Japanese lookup uses the bundled official search-index snapshot from October 15, 2026: 17,534 Pokémon-card entries across 450 pages. Species are matched from the card's own National Dex line when available, otherwise by longest non-overlapping Japanese species names in its title. Evolution/attack text is not used. Two special entries without a National Dex species are excluded from species selection.
+
+Detailed metadata is available for 1,188 entries. The rest retain names, set codes and official image URLs; missing collector numbers can be entered manually from your physical card. Catalog IDs are labeled separately from collector numbers. One official source record has no front scan; a placeholder is not presented as an actual card front. Older source images can be low resolution. The [import audit](../data/japanese-catalog-audit.json) records detailed/title-based coverage.
+
+English search uses TCGdex and excludes digital Pokémon TCG Pocket sets. Existing TCGdex choices imported from 0.04 remain valid. Catalog coverage does not guarantee every historical printing. Japanese finish is selected manually; artwork can be shared across finishes and editions.
 
 ## Keyboard
 

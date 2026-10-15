@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "source": "https://www.pokemon-card.com/card-search/",
+  "importedAt": "2026-10-15T00:14:46.604Z",
+  "expected": 17534,
+  "errors": [],
+  "unmatched": [
+    {
+      "id": "jp-39360",
+      "name": "ココ"
+    },
+    {
+      "id": "jp-32353",
+      "name": "メガサチコEX"
+    }
+  ],
+  "titleMapped": 16573,
+  "detailRecords": 1188,
+  "indexOnlyRecords": 16346
+}

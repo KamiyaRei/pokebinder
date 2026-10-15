@@ -25,6 +25,8 @@ English · 日本語 · Русский
 | Three languages | English, Japanese and Russian interfaces. Search works across all available names. |
 | Two themes | Light and Pokédex Dark, with a red binder shell and green collection indicators. |
 | Your own data | Automatic local saving, five recovery points and portable JSON backups. |
+| Exact printed cards | Optionally choose the actual card in each Pokémon's pocket, including set, collector number and finish. |
+| Japanese card database | Bundled official search index with 17,534 entries; English lookup through TCGdex. |
 
 No account, server, build step or third-party JavaScript dependencies are needed to use the prepared app.
 
@@ -43,6 +45,16 @@ No account, server, build step or third-party JavaScript dependencies are needed
 
 Screenshots show a demonstration collection, not a user's private progress.
 
+## Choose the card in your pocket
+
+Open a Pokémon → **Choose card**, select English or Japanese, filter by set and choose your printing. Its actual card front appears in the binder. Ordinary collected marks also work without a printing. You can enter a card manually, replace the printing or clear its link while keeping the collected mark.
+
+![Official Japanese card selection](docs/screenshots/japanese-catalog-0.05.jpg)
+
+The Japanese database contains all 450 pages of the official Pokémon-card search index captured on October 15, 2026: **17,534 entries**, including **19 Bulbasaur** and **315 Pikachu** cards. Japanese lookup works offline; card images load from the official website. English lookup uses TCGdex and needs internet for new searches.
+
+Detailed metadata is available for 1,188 entries. Other entries retain their official names, set codes and image URLs; missing collector numbers can be entered from your card. Official catalog IDs are labeled separately from collector numbers. Historical coverage follows the source, and foil variations may share an image. See the [catalog guide](docs/user-guide.md#exact-printed-cards) and [import audit](data/japanese-catalog-audit.json).
+
 ## Quick start
 
 Clone the repository and download the artwork once:
@@ -59,7 +71,9 @@ A page means **one side of a sheet**. The default 4×3 layout has 12 pockets per
 
 ## Keep your collection safe
 
-Progress, layout, language and theme are saved in this browser. Download a **Backup** regularly and use **Restore** when moving to another browser or device. Local recovery points cannot protect against browser data being cleared. The root `index.html` entry point and storage key remain stable across this project reorganization.
+Progress, exact-card choices, layout, language and theme are saved in this browser. Download a **Backup** regularly and use **Restore** when moving to another browser or device. Local recovery points cannot protect against browser data being cleared.
+
+**Upgrading from 0.03 or 0.04:** export Backup in your previous app, then Restore in 0.05. This version uses the separate storage key `pokebinder.local.0.05`, preserving old saves. Both old schema 1 and current schema 2 backups are supported. Keep your original 0.03 backup for rollback: 0.03 cannot read exact-card schema 2 backups. Image binaries are not included in JSON backups.
 
 See the [user guide](docs/user-guide.md) for storage details, keyboard controls and supported search names.
 
@@ -72,7 +86,8 @@ pokebinder/
 ├── src/                  # App behavior, translations and styles
 ├── data/
 │   ├── pokedex.js        # Prepared species dataset
-│   └── source/           # Original data snapshots
+│   ├── japanese-cards.js # Official Japanese printed-card index
+│   └── source/           # Original species data snapshots
 ├── scripts/              # Dataset/artwork preparation and local preview
 ├── tests/                # Data, settings and collection checks
 ├── docs/                 # Guide, attribution and screenshots
@@ -87,6 +102,8 @@ pokebinder/
 node scripts/prepare.cjs         # Rebuild the dataset from bundled sources
 node tests/check.cjs --skip-images
 node tests/check.cjs             # Also validate downloaded PNGs
+node tests/catalog.cjs           # Provider, matching and cache fixtures
+node tests/japanese-catalog.cjs  # Official index and species associations
 node scripts/preview.cjs         # Optional preview: http://127.0.0.1:8765
 ```
 

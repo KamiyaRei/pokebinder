@@ -1,13 +1,15 @@
 'use strict';
 const D = window.POKEMON;
 const $ = id => document.getElementById(id);
-const KEY = 'pokebinder.v1'; // Kept stable to preserve version 1 collections.
-const APP_VERSION = '0.03';
+const KEY = 'pokebinder.local.0.05'; // Isolated from the stable 0.03 collection.
+const APP_VERSION = '0.05';
 const DEFAULT_LAYOUT = {columns:4, rows:3, pages:40};
 const CARD_COLORS = ['', '#aaa98d','#dd9a65','#8cb8cf','#a2bb86','#d9c574','#9cbec4','#bb9077','#b4a0c1','#c0ad82','#a8b5c3','#bf9cbb','#b2bd7a','#b7ac8b','#a59abb','#a1a6c3','#aa9d91','#a4b7b0','#cfacbd'];
 let owned = new Set(), selected = 1, tab = 'dex', binder = 1, sheet = 1;
 let listPage = 1, filtered = [], storageOK = true, language = 'en';
 let layout = {...DEFAULT_LAYOUT}, theme = 'light', toastTimer;
+let printings = Object.create(null);
+const printingImages = new Map();
 const t = (key, values={}) => String(window.TRANSLATIONS[language][key] ?? window.TRANSLATIONS.en[key] ?? key).replace(/\{(\w+)\}/g, (_,name) => values[name] ?? `{${name}}`);
 const slotsPerPage = () => layout.columns * layout.rows;
 const binderCapacity = () => slotsPerPage() * layout.pages;
@@ -31,13 +33,20 @@ function validLayout(value) {
   return value && ['columns','rows','pages'].every(key=>Number.isInteger(value[key]) && value[key]>=1 && value[key]<=(key==='pages'?200:6));
 }
 function validateBackup(data) {
-  if (!data || data.version!==1 || !Array.isArray(data.owned) || data.owned.some(id=>!Number.isInteger(id)||id<1||id>D.length) || (data.layout!==undefined&&!validLayout(data.layout)) || (data.language!==undefined&&!['en','ja','ru'].includes(data.language)) || (data.theme!==undefined&&!['light','dark'].includes(data.theme))) throw Error(t('invalidBackup'));
+  if (!data || ![1,2].includes(data.version) || !Array.isArray(data.owned) || data.owned.some(id=>!Number.isInteger(id)||id<1||id>D.length) || (data.layout!==undefined&&!validLayout(data.layout)) || (data.language!==undefined&&!['en','ja','ru'].includes(data.language)) || (data.theme!==undefined&&!['light','dark'].includes(data.theme))) throw Error(t('invalidBackup'));
+  if(data.printings!==undefined) {
+    if(!data.printings||typeof data.printings!=='object'||Array.isArray(data.printings))throw Error(t('invalidBackup'));
+    for(const [key,record] of Object.entries(data.printings)) {
+      const id=Number(key);
+      if(String(id)!==key||!Number.isInteger(id)||id<1||id>D.length||!window.TCGCatalog.validate(record,id))throw Error(t('invalidBackup'));
+    }
+  }
 }
 function snapshot() {
-  return {app:'PokéBinder', appVersion:APP_VERSION, version:1, exportedAt:new Date().toISOString(), owned:[...owned].sort((a,b)=>a-b), selected, language, theme, layout:{...layout}};
+  return {app:'PokéBinder', appVersion:APP_VERSION, version:2, exportedAt:new Date().toISOString(), owned:[...owned].sort((a,b)=>a-b), selected, language, theme, layout:{...layout},printings:{...printings}};
 }
 function applySnapshot(data, restoreSettings=true) {
-  validateBackup(data); owned=new Set(data.owned);
+  validateBackup(data); owned=new Set(data.owned);printings=Object.assign(Object.create(null),data.printings||{});
   if (Number.isInteger(data.selected)&&data.selected>=1&&data.selected<=D.length) selected=data.selected;
   if (restoreSettings) {
     if (data.layout) layout={...data.layout};
@@ -58,7 +67,7 @@ function save() {
     if(previous) {
       const old=JSON.parse(previous); validateBackup(old);
       // Navigation and language switches do not displace collection recovery points.
-      if(JSON.stringify(old.owned)!==JSON.stringify(current.owned)||JSON.stringify(old.layout||DEFAULT_LAYOUT)!==JSON.stringify(current.layout)) {
+      if(JSON.stringify(old.owned)!==JSON.stringify(current.owned)||JSON.stringify(old.layout||DEFAULT_LAYOUT)!==JSON.stringify(current.layout)||JSON.stringify(old.printings||{})!==JSON.stringify(current.printings)) {
         localStorage.setItem(KEY+'.recovery',JSON.stringify([old,...recoveryPoints()].slice(0,5)));
       }
     }
@@ -111,8 +120,13 @@ function matches(p) {
   const match=!query||(/^\d+$/.test(query)?p.id===Number(query):searchable[p.id-1].includes(query));
   return match&&(status==='all'||owned.has(p.id)===(status==='owned'))&&(generation==='all'||p.gen===Number(generation))&&(type==='all'||p.types.includes(Number(type)));
 }
+function printingNumber(record) {
+  return record.collectorNumber?'#'+record.collectorNumber:record.provider==='pokemon-jp'?t('catalogId',{id:record.cardId.slice(3)}):'';
+}
 function tile(p) {
   const yes=owned.has(p.id), name=primaryName(p);
+  const record=yes&&printings[p.id];
+  if(record?.image)return `<article class="poke exactPrinting ${p.id===selected?'selected':''} owned"><button class="check" data-mark="${p.id}" aria-label="${esc(t('removeMark',{name}))}" aria-pressed="true">✓</button><button class="open" data-open="${p.id}" aria-label="${esc(t('openPokemon',{name,number:p.id}))}"><img class="printingFront" src="${esc(printingImage(p.id))}" data-fallback="${p.image}" alt="${esc(record.name+' · '+record.setName+' '+printingNumber(record))}" loading="lazy"><span class="printingFallback"><strong>${esc(name)}</strong><small>${esc(record.setName)} ${esc(printingNumber(record))}</small></span></button></article>`;
   return `<article class="poke ${yes?'owned':''} ${p.id===selected?'selected':''}" style="--card-color:${CARD_COLORS[p.types[0]]}"><button class="check" data-mark="${p.id}" aria-label="${esc(t(yes?'removeMark':'addMark',{name}))}" aria-pressed="${yes}">${yes?'✓':'+'}</button><button class="open" data-open="${p.id}" aria-label="${esc(t('openPokemon',{name,number:p.id}))}"><span class="number">#${num(p.id)}</span><span class="cardArt"><img src="${p.image}" alt="${esc(name)}" loading="lazy"></span><span class="cardNames"><span class="name">${esc(name)}</span><span class="ja">${esc(secondaryName(p))}</span></span><span class="cardType">${esc(window.TRANSLATIONS[language].types[p.types[0]])}</span></button></article>`;
 }
 function renderCatalog() {
@@ -127,12 +141,12 @@ function miniGrid(p) {
     const id=start+index;
     if(id>D.length) return '<span class="miniEmpty" aria-hidden="true"></span>';
     const yes=owned.has(id), name=primaryName(D[id-1]);
-    return `<button data-open="${id}" class="miniCard ${yes?'owned':''} ${id===p.id?'selected':''}" aria-label="${esc(t('pocketLabel',{slot:index+1,name,status:yes?t('insertedSuffix'):''}))}" aria-current="${id===p.id?'true':'false'}"><span>${num(id)}</span><img src="${D[id-1].image}" alt="" loading="lazy">${yes?'<b>✓</b>':''}</button>`;
+    return `<button data-open="${id}" class="miniCard ${yes?'owned':''} ${yes&&printings[id]?.image?'exactMini':''} ${id===p.id?'selected':''}" aria-label="${esc(t('pocketLabel',{slot:index+1,name,status:yes?t('insertedSuffix'):''}))}" aria-current="${id===p.id?'true':'false'}"><span>${num(id)}</span><img src="${esc(printingImage(id))}" data-fallback="${D[id-1].image}" alt="" loading="lazy">${yes?'<b>✓</b>':''}</button>`;
   }).join('');
 }
 function renderDetail() {
   const p=D[selected-1], location=position(p.id), yes=owned.has(p.id), words=window.TRANSLATIONS[language];
-  $('detail').innerHTML=`<div class="detailTop"><span>№ ${num(p.id)}</span><span class="statusPill ${yes?'yes':''}">${esc(t(yes?'inBinder':'notInserted'))}</span></div><div class="portrait"><img src="${p.image}" alt="${esc(primaryName(p))}"></div><div class="detailBody"><h2>${esc(primaryName(p))}</h2><p class="jname">${esc(secondaryName(p))}</p><div class="types">${p.types.map(type=>`<span class="type">${words.types[type]}</span>`).join('')}</div><div class="facts"><div>${t('generation')}<strong>${p.gen} · ${words.regions[p.gen]}</strong></div><div>${t('height')}<strong>${p.height} ${t('meters')}</strong></div><div>${t('weight')}<strong>${p.weight} ${t('kilograms')}</strong></div></div><div class="location"><p class="eyebrow">${t('collectionLocation')}</p><strong>${esc(t('location',location))}</strong><p>${t('rowColumn',{row:location.row,column:location.col})} · <a href="#" id="showLocation">${t('showPage')}</a></p><div class="miniBinder"><div class="miniSpine" aria-hidden="true"><i></i><i></i><i></i></div><div class="miniGrid">${miniGrid(p)}</div></div></div><button id="markSelected" class="mark ${yes?'yes':''}" aria-pressed="${yes}">${t(yes?'markRemoved':'markInserted')}</button><div class="detailNav"><button id="prevPokemon" ${selected===1?'disabled':''}>← № ${num(Math.max(1,selected-1))}</button><button id="nextPokemon" ${selected===D.length?'disabled':''}>№ ${num(Math.min(D.length,selected+1))} →</button></div><a class="official" href="https://zukan.pokemon.co.jp/detail/${num(p.id)}" target="_blank" rel="noopener">${t('officialLink')}</a><p class="keys">${t('keys')}</p></div>`;
+  $('detail').innerHTML=`<div class="detailTop"><span>№ ${num(p.id)}</span><span class="statusPill ${yes?'yes':''}">${esc(t(yes?'inBinder':'notInserted'))}</span></div><div class="portrait ${owned.has(p.id)&&printings[p.id]?.image?'exactPortrait':''} "><img src="${esc(printingImage(p.id))}" data-fallback="${p.image}" alt="${esc(primaryName(p))}"></div><div class="detailBody"><h2>${esc(primaryName(p))}</h2><p class="jname">${esc(secondaryName(p))}</p><div class="types">${p.types.map(type=>`<span class="type">${words.types[type]}</span>`).join('')}</div><div class="facts"><div>${t('generation')}<strong>${p.gen} · ${words.regions[p.gen]}</strong></div><div>${t('height')}<strong>${p.height} ${t('meters')}</strong></div><div>${t('weight')}<strong>${p.weight} ${t('kilograms')}</strong></div></div>${renderPrintingSummary(p.id)}<div class="location"><p class="eyebrow">${t('collectionLocation')}</p><strong>${esc(t('location',location))}</strong><p>${t('rowColumn',{row:location.row,column:location.col})} · <a href="#" id="showLocation">${t('showPage')}</a></p><div class="miniBinder"><div class="miniSpine" aria-hidden="true"><i></i><i></i><i></i></div><div class="miniGrid">${miniGrid(p)}</div></div></div><button id="markSelected" class="mark ${yes?'yes':''}" aria-pressed="${yes}">${t(yes?'markRemoved':'markInserted')}</button><div class="detailNav"><button id="prevPokemon" ${selected===1?'disabled':''}>← № ${num(Math.max(1,selected-1))}</button><button id="nextPokemon" ${selected===D.length?'disabled':''}>№ ${num(Math.min(D.length,selected+1))} →</button></div><a class="official" href="https://zukan.pokemon.co.jp/detail/${num(p.id)}" target="_blank" rel="noopener">${t('officialLink')}</a><p class="keys">${t('keys')}</p></div>`;
 }
 function binderSummary(number) {
   const start=(number-1)*binderCapacity()+1, end=Math.min(number*binderCapacity(),D.length), total=end-start+1;
@@ -248,10 +262,10 @@ $('export').onclick=exportBackup;$('backupNow').onclick=exportBackup;$('import')
 $('importFile').onchange=async()=>{
   const file=$('importFile').files[0];if(!file)return;
   try {
-    if(file.size>1000000)throw Error(t('fileTooLarge'));
+    if(file.size>5000000)throw Error(t('fileTooLarge'));
     const backup=JSON.parse(await file.text());validateBackup(backup);
     if(!confirm(t('restoreConfirm',{count:new Set(backup.owned).size,current:owned.size})))return;
-    applySnapshot(backup);applyLanguage();save();render();if(storageOK)toast(t('restored'));
+    applySnapshot(backup);applyLanguage();save();render();warmPrintingImages();if(storageOK)toast(t('restored'));
   } catch(error){toast(t('restoreError',{error:error.message}));}
   finally{$('importFile').value='';}
 };
@@ -271,16 +285,50 @@ $('recover').onclick=()=>{
     applySnapshot(previous);applyLanguage();
     // Consume the recovery point without replacing it with the state just undone.
     localStorage.setItem(KEY,JSON.stringify(snapshot()));localStorage.setItem(KEY+'.recovery',JSON.stringify(points.slice(1)));
-    render();updateBackupStatus();toast(t('recovered'));
+    render();warmPrintingImages();updateBackupStatus();toast(t('recovered'));
   } catch{toast(t('recoveryError'));}
 };
 document.addEventListener('keydown',event=>{
-  if($('settingsDialog').open||event.ctrlKey||event.metaKey||event.altKey||/INPUT|SELECT|TEXTAREA|BUTTON|A/.test(event.target.tagName))return;
+  if($('cardPicker')?.open||$('settingsDialog').open||event.ctrlKey||event.metaKey||event.altKey||/INPUT|SELECT|TEXTAREA|BUTTON|A/.test(event.target.tagName))return;
   if(event.key==='ArrowRight'){event.preventDefault();select(selected+1);}
   else if(event.key==='ArrowLeft'){event.preventDefault();select(selected-1);}
   else if(event.code==='Space'){event.preventDefault();toggle(selected);}
   else if(event.key==='/'){event.preventDefault();switchTab('dex');$('search').focus();}
 });
 window.addEventListener('hashchange',()=>{const id=Number(location.hash.slice(1));if(id>=1&&id<=D.length)select(id);});
-window.addEventListener('storage',event=>{if(event.key===KEY){readState();applyLanguage();render();}});
+window.addEventListener('storage',event=>{if(event.key===KEY){readState();applyLanguage();render();warmPrintingImages();}});
 render();
+
+
+
+function printingImage(id) {
+  const record=owned.has(id)&&printings[id];
+  return record?.image?(printingImages.get(record.image)||record.image):D[id-1].image;
+}
+function variantLabel(value) {return t('variant_'+value)===('variant_'+value)?value:t('variant_'+value);}
+function renderPrintingSummary(id) {
+  const record=printings[id];
+  return `<section class="printingSummary"><div class="printingHeading"><strong>${t('exactCard')}</strong><span>${t('optional')}</span></div>${record?`<p><strong>${esc(record.name)}</strong><br>${esc(record.setName)} · ${esc(printingNumber(record))}<br><small>${esc(record.cardLanguage.toUpperCase())} · ${esc(variantLabel(record.variant))}${record.firstEdition?' · 1st Edition':''}</small></p>`:`<p>${t('exactCardHint')}</p>`}<div><button data-choose-printing="${id}">${t(record?'changeCard':'chooseCard')}</button>${record?`<button data-clear-printing="${id}">${t('clearCardLink')}</button>`:''}</div></section>`;
+}
+function assignPrinting(id,record) {
+  if(!window.TCGCatalog.validate(record,id))throw Error(t('invalidCard'));
+  printings[id]={...record};owned.add(id);save();render();
+  if(storageOK)toast(t('cardAssigned'));
+  window.TCGCatalog.artwork(record,true).then(url=>{if(url){printingImages.set(record.image,url);render();}}).catch(()=>{});
+}
+function clearPrinting(id) {
+  delete printings[id];save();render();if(storageOK)toast(t('cardLinkCleared'));
+}
+async function warmPrintingImages() {
+  let changed=false;
+  await Promise.all(Object.values(printings).filter(record=>record.image&&!printingImages.has(record.image)).map(async record=>{try{const url=await window.TCGCatalog.artwork(record);if(url){printingImages.set(record.image,url);changed=true;}}catch{}}));
+  if(changed)render();
+}
+// Artwork is optional: preserve the saved printing even if its image cannot load.
+document.addEventListener('error',event=>{
+  const image=event.target;if(image.tagName!=='IMG'||!image.dataset.fallback||image.dataset.failed)return;
+  image.dataset.failed='true';image.src=image.dataset.fallback;
+  image.closest('.exactPrinting')?.classList.add('artworkUnavailable');
+  image.closest('.exactMini')?.classList.remove('exactMini');
+},true);
+warmPrintingImages();
