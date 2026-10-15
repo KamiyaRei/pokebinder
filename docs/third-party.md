@@ -20,8 +20,12 @@ No license is asserted here over third-party data or artwork.
 
 ## TCGdex printing catalog
 
-Printing metadata and artwork URLs are read from https://api.tcgdex.net/v2 and https://assets.tcgdex.net/. Results are matched to National Dex IDs and physical set metadata. English lookup uses TCGdex; previously saved Japanese TCGdex choices remain supported. Catalog data can be incomplete; artwork may be shared by multiple editions/finishes. Printed-card images remain the property of Pokémon and their respective owners. Cached catalog responses and selected images are stored locally and are not part of the source release or JSON backup.
+Printing metadata and artwork URLs are read from https://api.tcgdex.net/v2 and https://assets.tcgdex.net/. Results are matched to National Dex IDs and physical set metadata. English and Japanese datasets are supported. Catalog data can be incomplete; artwork may be shared by multiple editions/finishes. Printed-card images remain the property of Pokémon and their respective owners. Cached catalog responses and selected images are stored locally and are not part of the source release or JSON backup.
 
 ## Official Japanese printed-card catalog
 
-Source: https://www.pokemon-card.com/card-search/. All 450 Pokémon-card search result pages are bundled as local metadata, with official image URLs. Detailed-page coverage and title-based species associations are reported in data/japanese-catalog-audit.json. One source image is a placeholder. Artwork is loaded from the original host and is not bundled or included in JSON collection backups. Pokémon card artwork and trademarks belong to their respective owners. This is an independent local fan tool; no license over third-party data or artwork is asserted.
+Source: https://www.pokemon-card.com/card-search/. All 450 Pokémon-card search result pages are bundled as local metadata, with official image URLs. Detailed-page coverage and title-based species associations are reported in data/japanese-catalog-audit.json. One source image is a placeholder. Artwork is loaded from the original host and is not bundled or included in JSON collection backups. Pokémon card artwork and trademarks belong to their respective owners. This is an independent fan tool; no license over third-party data or artwork is asserted.
+
+## Card Labo supplementary record
+
+Source: https://www.c-labo-online.jp/product/408773 — メタモン AR, M6a 121/103, 30th CELEBRATION. This addition is independent of the official Pokémon-card search snapshot and is labeled as supplementary in the interface. The image is referenced from its source host; no product prices or stock information are imported. Card images and Pokémon trademarks remain the property of their respective owners. No affiliation or license is asserted.

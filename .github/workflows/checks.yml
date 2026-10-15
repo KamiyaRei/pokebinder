@@ -17,6 +17,10 @@ jobs:
           node-version: 22
       - name: Check JavaScript syntax
         run: |
+          node --check src/binder-model.js
+          node --check src/binder-ui.js
+          node --check src/binder-i18n.js
+          node --check src/card-tilt.js
           node --check src/app.js
           node --check src/i18n.js
           node --check src/tcg-catalog.js
@@ -28,5 +32,8 @@ jobs:
         run: node tests/check.cjs --skip-images
       - name: Validate card providers and Japanese database
         run: |
+          node tests/binder-model.cjs
+          node tests/card-tilt.cjs
+          node tests/supplements.cjs
           node tests/catalog.cjs
           node tests/japanese-catalog.cjs

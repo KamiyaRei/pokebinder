@@ -7,7 +7,7 @@ window.TCGCatalog = (() => {
     if(!database) database=new Promise(resolve=>{
       if(typeof indexedDB==='undefined'){resolve(null);return;}
       try {
-        const request=indexedDB.open('pokebinder-catalog-0.05',1);
+        const request=indexedDB.open('pokebinder-catalog-0.06',1);
         request.onupgradeneeded=()=>request.result.createObjectStore('cache');
         request.onsuccess=()=>resolve(request.result);
         request.onerror=()=>resolve(null);request.onblocked=()=>resolve(null);
@@ -36,12 +36,13 @@ window.TCGCatalog = (() => {
   function language(value){if(!['en','ja'].includes(value))throw Error('Unsupported card language');return value;}
   function safeImage(value) {
     if(!value)return '';
+    if(value==='https://www.c-labo-online.jp/data/c-labo/product/M6a_121.jpg')return value;
     try{const url=new URL(value);if(url.protocol!=='https:')return '';if(url.hostname==='www.pokemon-card.com'&&(/^\/assets\/images\/card_images\/(large|legend)\/[\w-]*\/[\w.-]+\.(jpg|gif|png)$/.test(url.pathname)||url.pathname==='/assets/images/noimage/poke_ura.jpg'))return url.href;if(url.hostname!=='assets.tcgdex.net')return '';return /\.(webp|png|jpg)$/i.test(url.pathname)?url.href:url.href+'/high.webp';}catch{return '';}
   }
   function setId(card){return String(card.id||'').slice(0,String(card.id||'').lastIndexOf('-'));}
   async function list(speciesId,lang,options={}) {
     language(lang);if(!Number.isInteger(speciesId)||speciesId<1||speciesId>1025)throw Error('Invalid species');
-    if(lang==='ja'&&window.JAPANESE_CARDS)return window.JAPANESE_CARDS.cards.filter(card=>card.speciesIds.includes(speciesId)).map(card=>({...card,image:card.artworkStatus==='placeholder'?'':safeImage(card.image)}));
+    if(lang==='ja'&&window.JAPANESE_CARDS&&!options.archive)return window.JAPANESE_CARDS.cards.filter(card=>card.speciesIds.includes(speciesId)).map(card=>({...card,image:card.artworkStatus==='placeholder'?'':safeImage(card.image)})).concat((window.CARD_SUPPLEMENTS||[]).filter(card=>card.speciesId===speciesId&&card.cardLanguage===lang).map(card=>({...card})));
     const [cards,sets,pocket]=await Promise.all([
       request(`${lang}/cards?dexId=eq:${speciesId}`,options),
       request(`${lang}/sets`,options).catch(()=>[]),
@@ -60,6 +61,7 @@ window.TCGCatalog = (() => {
   }
   async function details(speciesId,lang,cardId) {
     language(lang);if(!/^[\w.-]+$/.test(cardId))throw Error('Invalid card ID');
+    if(cardId.startsWith('supplement-')){const card=(window.CARD_SUPPLEMENTS||[]).find(card=>card.cardId===cardId&&card.speciesId===speciesId&&card.cardLanguage===lang);if(!card)throw Error('Invalid supplementary card');return {...card,availableVariants:[...card.availableVariants]};}
     if(lang==='ja'&&cardId.startsWith('jp-')) {
       const card=window.JAPANESE_CARDS?.cards.find(card=>card.id===cardId&&card.speciesIds.includes(speciesId));
       if(!card)throw Error('This card does not match the selected Pokémon');
@@ -74,7 +76,8 @@ window.TCGCatalog = (() => {
     return {provider:'tcgdex',speciesId,cardId:card.id,cardLanguage:lang,name:String(card.name),setId:card.set.id,setName:String(card.set.name||set.name||card.set.id),collectorNumber:String(card.localId||''),seriesName:String(set.serie.name||set.serie.id),releaseDate:String(set.releaseDate||''),rarity:String(card.rarity||''),image:safeImage(card.image),variant:'unspecified',availableVariants:variants(card),firstEditionAvailable:!!card.variants?.firstEdition,firstEdition:false};
   }
   function validate(record,speciesId) {
-    if(!record||record.speciesId!==speciesId||!['tcgdex','pokemon-jp','manual'].includes(record.provider)||!['en','ja','other'].includes(record.cardLanguage))return false;
+    if(!record||record.speciesId!==speciesId||!['tcgdex','pokemon-jp','manual','supplement'].includes(record.provider)||!['en','ja','other'].includes(record.cardLanguage))return false;
+    if(record.provider==='supplement'&&!(window.CARD_SUPPLEMENTS||[]).some(card=>card.cardId===record.cardId&&card.speciesId===speciesId&&card.cardLanguage===record.cardLanguage&&card.image===record.image))return false;
     for(const key of ['cardId','name','setId','setName','collectorNumber','variant'])if(typeof record[key]!=='string'||record[key].length>300)return false;
     if(!record.name.trim()||!record.cardId.trim())return false;
     if(record.provider==='pokemon-jp'&&(record.cardLanguage!=='ja'||!/^jp-\d+$/.test(record.cardId)))return false;

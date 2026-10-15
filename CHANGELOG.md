@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10 — 2026-10-16
+
+- Configure each binder independently, including page layout, capacity, name and cover color.
+- Add free binders with arbitrary card placement, duplicate Pokémon and custom entries, plus moving, swapping and safe resizing.
+- Separate the Pokédex encyclopedia from collection workspaces; optionally show collection cards and progress in the Pokédex.
+- Keep species numbers, names and printing details visible on selected card fronts, with responsive pointer tilt and stable navigation.
+- Separate general preferences and backup tools from binder settings; localize search prompts and add creator credits.
+- Save all binders and free pockets in schema 3 backups while retaining imports from earlier versions and local recovery.
+- Expand Japanese card lookup with an optional archive source and a labeled Ditto M6a 121/103 AR supplement.
+
 ## 0.05 — 2026-10-15
 
 - Bundle the official Japanese Pokémon-card search index: 17,534 entries with official image URLs, including 19 Bulbasaur cards.
@@ -16,12 +26,9 @@
 
 ## 0.03 — 2026-10-15
 
-- Organize app code, source data, scripts, tests and documentation into dedicated directories while keeping the root launch URL stable.
-- Add real application screenshots and a focused README gallery.
-- Slightly deepen the muted appearance of missing binder cards.
-- Add Pokédex Dark with persistent theme preferences and backup support.
-- Gently desaturate uncollected artwork on the main binder page, without extra labels.
-- Make page thumbnails compact while retaining the filled-pocket map.
+- Organize source code and documentation; add an application screenshot gallery.
+- Add persistent Pokédex Dark preferences and backup support.
+- Improve binder progress readability with subtle missing-card styling and compact page maps.
 
 ## 0.02 — 2026-10-15
 
